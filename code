@@ -1,0 +1,55 @@
+from collections import *
+from pyspark import *
+from pyspark.sql import *
+
+
+# spark dtaframe API
+def creatingDataframe():
+    sample = spark.read \
+        .option('header', 'true') \
+        .option('inferSchema', 'true') \
+        .csv('01-HelloSpark/data/sample.csv')
+    return sample
+
+
+# operations on sparkdataframe api
+def output(d):
+    return d \
+        .where('Age > 40') \
+        .select('Age', 'Gender', 'Country', 'state') \
+        .groupBy('Country') \
+        .count()
+
+
+rddColumn = namedtuple("rddColumn", ["Age", "Gender", "Country", "State"])
+
+if __name__ == '__main__':
+    conf = SparkConf() \
+        .setMaster('local[3]') \
+        .setAppName('Hello Spark')
+    # sc = SparkContext(conf = conf)
+    spark = SparkSession.builder \
+        .config(conf=conf) \
+        .getOrCreate()
+    print('Starting spark session ')
+    sc = spark.sparkContext
+    """Dataframe API operation portion"""
+    """Dataframe operation  ********************* refer to the above function for conditions"""
+    # r = creatingDataframe()
+    # r.show()
+    # output(r).show()
+    """How difficult it is to perform operations on RDD, not recommended"""
+    """RDD OPERATIONS *************************** """
+    # rdd = sc.textFile('01-HelloSpark/data/sample.csv')
+    # mapRdd = rdd.map(lambda line: line.replace('"', '').split(','))
+    # colRdd = mapRdd.map(lambda cols: rddColumn(cols[1], cols[2], cols[3], cols[4]))
+    # filteredRDD = colRdd.filter(lambda r: int(r.Age) < 40)
+    # print(filteredRDD.collect())
+    """SparkSQL portion **************************"""
+    """taking the create dataframe function from above"""
+    r = creatingDataframe()
+    r.createOrReplaceTempView('viewFromDataframe')
+    # sparkSQL = spark.sql('select * from viewFromDataframe')
+    # input('anything')
+    sparkSQL = spark.sql('select Country, count(*) c from viewFromDataframe where Age < 40 group by Country having count(*) > 1 order by c')
+    sparkSQL.show()
